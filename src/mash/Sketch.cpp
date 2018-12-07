@@ -25,12 +25,14 @@
 #include <math.h>
 #include <list>
 #include <string.h>
+#include <string>
+#include <vector>
+
+using namespace std;
 
 #define SET_BINARY_MODE(file)
 #define CHUNK 16384
 KSEQ_INIT(gzFile, gzread)
-
-using namespace std;
 
 typedef map < Sketch::hash_t, vector<Sketch::PositionHash> > LociByHash_map;
 
@@ -101,6 +103,13 @@ void Sketch::initFromReads(const vector<string> & files, const Parameters & para
 	
     createIndex();
 }
+
+/*
+void Sketch::initFromBarcodedReads(const std::vector<std::string>& files, const Sketch::Parameters& parametersNew)
+{
+    exit(1);
+}
+*/
 
 int Sketch::initFromFiles(const vector<string> & files, const Parameters & parametersNew, int verbosity, bool enforceParameters, bool contain)
 {
@@ -249,6 +258,94 @@ int Sketch::initFromFiles(const vector<string> & files, const Parameters & param
     
     createIndex();
     
+    return 0;
+}
+
+int Sketch::initFromBarcodedFiles(const std::vector<std::string>& files, const Sketch::Parameters& parametersNew, int verbosity, bool enforceParameters, bool caontain)
+{
+    parameters = parametersNew;
+	ThreadPool<Sketch::SketchBarcodedInput, Sketch::SketchOutput> threadPool(0, parameters.parallelism);
+    if (files.size() != 2)
+    {
+        cerr << "Please supply paired-end barcoded reads files" << endl;
+        exit(1);
+    }
+    gzFile fp1 = gzopen(files[0].c_str(), "r");
+    gzFile fp2 = gzopen(files[1].c_str(), "r");
+    kseq_t * kseq_a = kseq_init(fp1);
+    kseq_t * kseq_b = kseq_init(fp2);
+    int l_a, l_b;
+    int count = 0;
+    std::string name_pre{"pre"}, name_now{"now"};
+    std::string s1_now, s1_next, s2_now, s2_next;
+    std::vector<std::string> r1, r2;
+    while (((l_a = kseq_read(kseq_a)) >= 0) &&
+           ((l_b = kseq_read(kseq_b)) >= 0))
+    {
+        if (l_a > parameters.kmerSize &&
+            l_b > parameters.kmerSize)
+        {
+            name_now = kseq_a->comment.s;
+            s1_now = kseq_a->seq.s;
+            s2_now = kseq_b->seq.s;
+            if (count == 0)
+            {
+                r1.push_back(s1_now);
+                r2.push_back(s2_now);
+                name_pre = name_now;
+                continue;
+            }
+            if (name_now == name_pre)
+            {
+                r1.push_back(s1_now);
+                r2.push_back(s2_now);
+            }
+            else
+            {
+                threadPool.runWhenThreadAvailable(
+                    new SketchBarcodedInput(name_pre, r1, r2, parameters),
+                    sketchBarcodedSequence);
+                while (threadPool.outputAvailable())
+                {
+                    useThreadOutput(threadPool.popOutputWhenAvailable());
+                }
+                r1.clear();
+                r2.clear();
+                r1.push_back(s1_now);
+                r2.push_back(s2_now);
+                name_pre = name_now;
+                ++count;
+            }
+        }
+    }
+    threadPool.runWhenThreadAvailable(
+        new SketchBarcodedInput(name_pre, r1, r2, parameters),
+            sketchBarcodedSequence);
+    while (threadPool.outputAvailable())
+    {
+        useThreadOutput(threadPool.popOutputWhenAvailable());
+    }
+
+    if ( (l_a != -1) && (l_b != -1))
+    {
+        cerr << "\nERROR: reading " << files[0] << " and " << files[1] << endl;
+        exit(1);
+    }
+
+    r1.clear();
+    r2.clear();
+    kseq_destroy(kseq_a);
+    kseq_destroy(kseq_b);
+    gzclose(fp1);
+    gzclose(fp2);
+
+    while (threadPool.running())
+    {
+        useThreadOutput(threadPool.popOutputWhenAvailable());
+    }
+
+    createIndex();
+
     return 0;
 }
 
@@ -1370,6 +1467,48 @@ Sketch::SketchOutput * sketchSequence(Sketch::SketchInput * input)
 	}
 	
 	return output;
+}
+Sketch::SketchOutput * sketchBarcodedSequence(Sketch::SketchBarcodedInput* input)
+{
+    const Sketch::Parameters & parameters = input->parameters;
+    Sketch::SketchOutput * output = new Sketch::SketchOutput();
+    output->references.resize(1);
+    Sketch::Reference & reference = output->references[0];
+
+    MinHashHeap minHashHeap(parameters.use64, parameters.minHashesPerWindow,
+        parameters.reads ? parameters.minCov : 1, parameters.memoryBound);
+
+    reference.length = 0;
+    reference.hashesSorted.setUse64(parameters.use64);
+
+    auto barcode_count = input->barcoded_r1.size();
+    reference.name = input->name;
+
+    reference.comment = string("[ ") +
+                        to_string(barcode_count) +
+                        string(" seqs]") + input->name + " [...]";
+
+    for (int i = 0; i < input->barcoded_r1.size(); i++)
+    {
+        uint64_t l = input->barcoded_r1[i].length();
+        uint64_t l2 = input->barcoded_r2[i].length();
+        addMinHashes(minHashHeap, const_cast<char *>(input->barcoded_r1[i].c_str()), l, parameters);
+        addMinHashes(minHashHeap, const_cast<char *>(input->barcoded_r2[i].c_str()), l2, parameters);
+        if (parameters.reads && parameters.targetCov > 0 &&
+            minHashHeap.estimateMultiplicity() >= parameters.targetCov)
+            {
+                break;
+            }
+    }
+    if (parameters.reads)
+    {
+        reference.length = minHashHeap.estimateSetSize();
+    }
+    if (! parameters.windowed)
+    {
+        setMinHashesForReference(reference, minHashHeap);
+    }
+    return output;
 }
 
 // The following functions are adapted from http://www.zlib.net/zpipe.c

@@ -88,14 +88,15 @@ int CommandSketch::run() const
     		cerr << "WARNING: -I and -C will only apply to first sketch" << endl;
     	}
     }
-    
+
     if ( parameters.reads )
     {
-    	sketch.initFromReads(files, parameters);
+        if ( !parameters.barcoded)  sketch.initFromReads(files, parameters);
+        else sketch.initFromBarcodedFiles(files, parameters);
     }
     else
     {
-	    sketch.initFromFiles(files, parameters, verbosity);
+        sketch.initFromFiles(files, parameters, verbosity);
 	}
 	
 	if ( getOption("id").active )

@@ -17,6 +17,7 @@ int sketchParameterSetup(Sketch::Parameters & parameters, const Command & comman
     parameters.kmerSize = command.getOption("kmer").getArgumentAsNumber();
     parameters.minHashesPerWindow = command.getOption("sketchSize").getArgumentAsNumber();
     parameters.concatenated = ! command.getOption("individual").active;
+    parameters.barcoded = command.getOption("barcoded").active;
     parameters.noncanonical = command.getOption("noncanonical").active;
     parameters.seed = command.getOption("seed").getArgumentAsNumber();
     parameters.reads = command.getOption("reads").active;
@@ -59,9 +60,11 @@ int sketchParameterSetup(Sketch::Parameters & parameters, const Command & comman
     	parameters.genomeSize = command.getOption("genome").getArgumentAsNumber();
     }
     
-    if ( parameters.reads && command.getOption("threads").active )
+    if ( parameters.reads && command.getOption("threads").active && ! command.getOption("barcoded").active )
     {
-    	cerr << "WARNING: The option " << command.getOption("threads").identifier << " will be ignored with " << command.getOption("reads").identifier << "." << endl;
+    	cerr << "WARNING: The option " << command.getOption("threads").identifier
+    	     << " will be ignored with " << command.getOption("reads").identifier
+    	     << ", but without " << command.getOption("barcoded").identifier << "." << endl;
     }
     
     if ( parameters.reads && ! parameters.concatenated )
@@ -70,6 +73,17 @@ int sketchParameterSetup(Sketch::Parameters & parameters, const Command & comman
         return 1;
     }
     
+    if ( parameters.barcoded)
+    {
+        if (! parameters.concatenated)
+        cerr << "ERROR: The option " << command.getOption("individual").identifier << " cannot be used with " << command.getOption("barcoded").identifier << "." << endl;
+        if ( ! parameters.reads)
+        {
+            cerr << "ERROR: Now only support sketch barcoded reads" << endl;
+            exit(1);
+        }
+    }
+
     if ( parameters.concatenated && parameters.windowed )
     {
         cerr << "ERROR: " << command.getOption("concat").identifier << " and " << command.getOption("windowed").identifier << " are incompatible." << endl;

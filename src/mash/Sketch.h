@@ -8,6 +8,7 @@
 #define Sketch_h
 
 #include "mash/capnp/MinHash.capnp.h"
+#include "capnp/MinHash.capnp.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
@@ -48,6 +49,7 @@ public:
             windowSize(0),
             windowed(false),
             concatenated(false),
+            barcoded(false),
             noncanonical(false),
             reads(false),
             memoryBound(0),
@@ -72,6 +74,7 @@ public:
             windowSize(other.windowSize),
             windowed(other.windowed),
             concatenated(other.concatenated),
+            barcoded(other.barcoded),
             noncanonical(other.noncanonical),
             reads(other.reads),
             memoryBound(other.memoryBound),
@@ -95,6 +98,7 @@ public:
         uint64_t windowSize;
         bool windowed;
         bool concatenated;
+        bool barcoded;
         bool noncanonical;
         bool reads;
         uint64_t memoryBound;
@@ -171,6 +175,25 @@ public:
     	Sketch::Parameters parameters;
     };
     
+    struct SketchBarcodedInput
+    {
+        SketchBarcodedInput(std::string name_,
+                            std::vector<std::string> r1v,
+                            std::vector<std::string> r2v, 
+                            const Sketch::Parameters & parametersNew)
+        :
+        name(name_),
+        barcoded_r1(r1v),
+        barcoded_r2(r2v),
+        parameters(parametersNew)
+        {}
+        ~SketchBarcodedInput() {}
+        std::string name;
+        std::vector<std::string> barcoded_r1;
+        std::vector<std::string> barcoded_r2;
+        Sketch::Parameters parameters;
+    };
+
     struct SketchOutput
     {
     	std::vector<Reference> references;
@@ -200,7 +223,9 @@ public:
     bool hasHashCounts() const {return references.size() > 0 && references.at(0).counts.size() > 0;}
     bool hasLociByHash(hash_t hash) const {return lociByHash.count(hash);}
     int initFromFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
+    int initFromBarcodedFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool caontain = false);
     void initFromReads(const std::vector<std::string> & files, const Parameters & parametersNew);
+    // void initFromBarcodedReads(const std::vector<std::string> & files, const Parameters & parametersNew);
     uint64_t initParametersFromCapnp(const char * file);
     void setReferenceName(int i, const std::string name) {references[i].name = name;}
     void setReferenceComment(int i, const std::string comment) {references[i].comment = comment;}
@@ -233,6 +258,7 @@ void setAlphabetFromString(Sketch::Parameters & parameters, const char * charact
 void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap & hashes);
 Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input);
 Sketch::SketchOutput * sketchSequence(Sketch::SketchInput * input);
+Sketch::SketchOutput * sketchBarcodedSequence(Sketch::SketchBarcodedInput * input);
 
 int def(int fdSource, int fdDest, int level);
 int inf(int fdSource, int fdDest);

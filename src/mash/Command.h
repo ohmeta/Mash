@@ -42,8 +42,8 @@ public:
         }
         type;
         
-        std::string category;
         std::string identifier;
+        std::string category;
         std::string description;
         std::string argument;
         std::string argumentDefault;

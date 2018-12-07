@@ -173,6 +173,7 @@ Command::Command()
     addAvailableOption("verbose", Option(Option::Boolean, "v", "Output", "Verbose", ""));
     addAvailableOption("silent", Option(Option::Boolean, "s", "Output", "Silent", ""));
     addAvailableOption("individual", Option(Option::Boolean, "i", "Sketch", "Sketch individual sequences, rather than whole files, e.g. for multi-fastas of single-chromosome genomes or pair-wise gene comparisons.", ""));
+    addAvailableOption("barcoded", Option(Option::Boolean, "B", "Sketch", "Sketch barcoded sequences, rather than whole files, e.g for co-barcode reads generated from stLFR technology or multi-contigs of one bins", ""));
     addAvailableOption("warning", Option(Option::Number, "w", "Sketch", "Probability threshold for warning about low k-mer size.", "0.01", 0, 1));
     addAvailableOption("reads", Option(Option::Boolean, "r", "Sketch", "Input is a read set. See Reads options below. Incompatible with -i.", ""));
     addAvailableOption("seed", Option(Option::Integer, "S", "Sketch", "Seed to provide to the hash function.", "42", 0, 0xFFFFFFFF));
@@ -366,6 +367,7 @@ void Command::useSketchOptions()
 #endif
     useOption("sketchSize");
     useOption("individual");
+    useOption("barcoded");
     useOption("seed");
     useOption("warning");
     useOption("reads");
