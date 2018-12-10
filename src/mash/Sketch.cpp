@@ -293,6 +293,7 @@ int Sketch::initFromBarcodedFiles(const std::vector<std::string>& files, const S
                 r1.push_back(s1_now);
                 r2.push_back(s2_now);
                 name_pre = name_now;
+                ++count;
                 continue;
             }
             if (name_now == name_pre)
@@ -1484,9 +1485,9 @@ Sketch::SketchOutput * sketchBarcodedSequence(Sketch::SketchBarcodedInput* input
     auto barcode_count = input->barcoded_r1.size();
     reference.name = input->name;
 
-    reference.comment = string("[ ") +
+    reference.comment = string("[") +
                         to_string(barcode_count) +
-                        string(" seqs]") + input->name + " [...]";
+                        string(" seqs] ") + input->name + " [...]";
 
     for (int i = 0; i < input->barcoded_r1.size(); i++)
     {
