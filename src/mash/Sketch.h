@@ -50,6 +50,7 @@ public:
             windowed(false),
             concatenated(false),
             barcoded(false),
+            barcodeformat(1),
             noncanonical(false),
             reads(false),
             memoryBound(0),
@@ -75,6 +76,7 @@ public:
             windowed(other.windowed),
             concatenated(other.concatenated),
             barcoded(other.barcoded),
+            barcodeformat(other.barcodeformat),
             noncanonical(other.noncanonical),
             reads(other.reads),
             memoryBound(other.memoryBound),
@@ -99,6 +101,7 @@ public:
         bool windowed;
         bool concatenated;
         bool barcoded;
+        int barcodeformat;
         bool noncanonical;
         bool reads;
         uint64_t memoryBound;
