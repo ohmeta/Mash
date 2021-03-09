@@ -91,7 +91,7 @@ int CommandSketch::run() const
 
     if ( parameters.reads )
     {
-        if ( !parameters.barcoded)  sketch.initFromReads(files, parameters);
+        if ( !parameters.barcoded) sketch.initFromReads(files, parameters);
         else sketch.initFromBarcodedFiles(files, parameters);
     }
     else

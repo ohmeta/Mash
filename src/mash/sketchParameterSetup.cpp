@@ -18,6 +18,7 @@ int sketchParameterSetup(Sketch::Parameters & parameters, const Command & comman
     parameters.minHashesPerWindow = command.getOption("sketchSize").getArgumentAsNumber();
     parameters.concatenated = ! command.getOption("individual").active;
     parameters.barcoded = command.getOption("barcoded").active;
+    parameters.barcodeformat = command.getOption("barcodeformat").getArgumentAsNumber();
     parameters.noncanonical = command.getOption("noncanonical").active;
     parameters.seed = command.getOption("seed").getArgumentAsNumber();
     parameters.reads = command.getOption("reads").active;
@@ -80,6 +81,12 @@ int sketchParameterSetup(Sketch::Parameters & parameters, const Command & comman
         if ( ! parameters.reads)
         {
             cerr << "ERROR: Now only support sketch barcoded reads" << endl;
+            exit(1);
+        }
+        if (parameters.barcodeformat != 1 && parameters.barcodeformat != 2)
+        {
+            cerr << "Don't support " << command.getOption("barcodeformat").argument << " barcode format\n" 
+                 << "Please use -F 1 or -F 2, defaults is 1\n" << endl;
             exit(1);
         }
     }

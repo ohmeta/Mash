@@ -274,10 +274,8 @@ int Sketch::initFromBarcodedFiles(const std::vector<std::string>& files, const S
     gzFile fp2 = gzopen(files[1].c_str(), "r");
     kseq_t * kseq_a = kseq_init(fp1);
     kseq_t * kseq_b = kseq_init(fp2);
-    int l_a, l_b;
-    int count = 0;
-    std::string name_pre{"pre"}, name_now{"now"};
-    std::string s1_now, s1_next, s2_now, s2_next;
+    int l_a, l_b, count = 0;
+    std::string name_pre, name_now, s1_now, s2_now;
     std::vector<std::string> r1, r2;
     while (((l_a = kseq_read_b(kseq_a)) >= 0) &&
            ((l_b = kseq_read_b(kseq_b)) >= 0))
@@ -285,7 +283,23 @@ int Sketch::initFromBarcodedFiles(const std::vector<std::string>& files, const S
         if (l_a > parameters.kmerSize &&
             l_b > parameters.kmerSize)
         {
-            name_now = kseq_a->comment.s;
+            if (parameters.barcodeformat == 2)
+            {
+                name_now = "";
+                for (int i = 0; i < kseq_a->name.l; i++)
+                {
+                    if (kseq_a->name.s[i] == '#')
+                    {
+                        for(int j = i + 1; j < kseq_a->name.l - 2; j++)
+                            name_now += kseq_a->name.s[j];
+                    }
+                }
+            }
+            else if (parameters.barcodeformat == 1)
+            {
+                name_now = kseq_a->comment.s;
+            }
+
             s1_now = kseq_a->seq.s;
             s2_now = kseq_b->seq.s;
             if (count == 0)
